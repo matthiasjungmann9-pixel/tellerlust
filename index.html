@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Tellerlust">
+<meta name="theme-color" content="#F6F7F4">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Tellerlust</title>
+<style>
+:root{--bg:#F6F7F4;--card:#fff;--ink:#2A1B2D;--mute:#7A727C;--acc:#E0412F;--accsoft:#FBE3DF;--line:#E6E4E0;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#171218;--card:#241C26;--ink:#F4EEF4;--mute:#A89FAA;--acc:#FF6A55;--accsoft:#4A2622;--line:#34293A}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:17px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;padding-top:env(safe-area-inset-top)}
+#app{height:100%;display:flex;flex-direction:column}
+main{flex:1;overflow-y:auto;padding:20px 20px 32px;-webkit-overflow-scrolling:touch}
+h1{font-size:30px;line-height:1.15;margin:8px 0 6px;letter-spacing:-.02em}
+h2{font-size:20px;margin:28px 0 4px}
+p.s{color:var(--mute);margin:0 0 14px}
+.card{background:var(--card);border-radius:20px;padding:16px;margin-bottom:12px}
+.row{display:flex;align-items:center;justify-content:center;gap:28px;padding:8px 0}
+.row b{font-size:44px;min-width:60px;text-align:center}
+.rb{width:56px;height:56px;border-radius:50%;border:0;background:var(--bg);color:var(--ink);font-size:28px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chip{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:16px;padding:14px 10px;font-family:inherit;font-weight:600;font-size:16px;min-height:56px;text-align:center}
+.chip.on{border-color:var(--acc);background:var(--accsoft)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.days .chip{padding:0;min-height:48px;border-radius:50%;aspect-ratio:1}
+.btn{display:block;width:100%;border:0;border-radius:16px;background:var(--acc);color:#fff;font-family:inherit;font-weight:700;font-size:18px;padding:16px;margin-top:20px}
+.btn.g{background:transparent;color:var(--mute);margin-top:4px}
+.dots{display:flex;gap:6px;margin-bottom:14px}.dots i{height:5px;flex:1;border-radius:3px;background:var(--line)}.dots i.on{background:var(--acc)}
+nav{display:flex;border-top:1px solid var(--line);background:var(--card);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;color:var(--mute);font-family:inherit;font-weight:600;font-size:12px;padding:10px 0 8px;min-height:56px}
+nav button span{display:block;font-size:22px}
+nav button.on{color:var(--acc)}
+.empty{text-align:center;color:var(--mute);padding:60px 20px}
+.rc{display:flex;gap:14px;align-items:center;background:var(--card);border-radius:20px;padding:12px;margin-bottom:10px;width:100%;border:0;text-align:left;color:var(--ink);font-family:inherit}
+.rc .th{width:76px;height:76px;border-radius:16px;display:grid;place-items:center;font-size:38px;flex:none}
+.rc b{display:block;font-size:17px;line-height:1.25}.rc small{color:var(--mute);font-size:14px}
+.hero{height:200px;border-radius:24px;display:grid;place-items:center;font-size:84px;position:relative;margin-bottom:14px}
+.hero button{position:absolute;top:12px;width:44px;height:44px;border-radius:50%;border:0;background:var(--card);color:var(--ink);font-size:20px}
+.macros{display:grid;grid-template-columns:repeat(4,1fr);text-align:center}.macros b{display:block;font-size:22px}.macros small{color:var(--mute);font-size:13px}
+.seg{display:flex;background:var(--line);border-radius:14px;padding:3px;margin:14px 0}.seg button{flex:1;border:0;background:none;color:var(--mute);font-family:inherit;font-weight:600;font-size:16px;padding:10px;border-radius:11px}.seg button.on{background:var(--card);color:var(--acc)}
+.ing{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.ing:last-child{border:0}.ing span:last-child{color:var(--mute);white-space:nowrap}
+.step{display:flex;gap:12px;padding:10px 0}.step i{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accsoft);color:var(--acc);font-style:normal;font-weight:700;display:grid;place-items:center;font-size:14px}
+input.chip{margin-bottom:10px}
+button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+<div id="app"><main id="main"></main><nav id="nav" hidden></nav></div>
+<script src="recipes.js"></script>
+<script>
+const OPT={
+ diet:['Alles','Vegetarisch','Vegan','Pescetarisch','Low Carb','High Protein'],
+ allergy:['Gluten','Laktose','Nüsse','Eier','Schalentiere','Sesam','Soja'],
+ device:['Herd','Ofen','Mikrowelle','Heißluftfritteuse','Mixer','Reiskocher','Grill'],
+ level:['Einfach','Mittel','Anspruchsvoll'],
+ time:[20,30,45,60]
+};
+const DAYS=['M','D','M','D','F','S','S'];
+const DEF={done:false,fav:[],persons:4,days:[0,2,4],meal:'Abend',diet:['Alles'],allergy:[],exclude:'',device:['Herd','Ofen'],level:'Mittel',time:45};
+let S;try{S={...DEF,...JSON.parse(localStorage.getItem('tl')||'{}')}}catch(e){S={...DEF}}
+const save=()=>{try{localStorage.setItem('tl',JSON.stringify(S))}catch(e){}};
+let tab='plan',step=0,open=null,rtab='z',q='',onlyFav=false;
+const $=id=>document.getElementById(id);
+const tog=(k,v)=>{const a=S[k],i=a.indexOf(v);i>=0?a.splice(i,1):a.push(v);save();draw()};
+const chips=(k,list)=>`<div class="grid">${list.map(v=>`<button class="chip ${S[k].includes(v)?'on':''}" onclick="tog('${k}','${v}')">${v}</button>`).join('')}</div>`;
+const single=(k,list,suf='')=>`<div class="grid">${list.map(v=>`<button class="chip ${S[k]==v?'on':''}" onclick="S.${k}=${typeof v=='number'?v:`'${v}'`};save();draw()">${v}${suf}</button>`).join('')}</div>`;
+const persons=()=>`<div class="card row"><button class="rb" aria-label="Weniger" onclick="S.persons=Math.max(1,S.persons-1);save();draw()">−</button><b>${S.persons}</b><button class="rb" aria-label="Mehr" onclick="S.persons=Math.min(12,S.persons+1);save();draw()">+</button></div>`;
+const days=()=>`<div class="days">${DAYS.map((d,i)=>`<button class="chip ${S.days.includes(i)?'on':''}" aria-label="Tag ${i+1}" onclick="tog('days',${i})">${d}</button>`).join('')}</div>`;
+const excl=()=>`<input class="chip" style="width:100%;text-align:left;font-weight:400" placeholder="z. B. Koriander, Oliven" value="${S.exclude.replace(/"/g,'&quot;')}" onchange="S.exclude=this.value;save()">`;
+const sections={
+ persons:['Für wie viele kochst du?','Die Mengen in allen Rezepten passen sich an.',persons],
+ days:['An welchen Tagen kochst du?','Für diese Tage plant die App je eine warme Mahlzeit.',days],
+ diet:['Wie ernährst du dich?','Du kannst mehrere wählen.',()=>chips('diet',OPT.diet)],
+ allergy:['Was darf nicht rein?','Wähle alle Allergien und Unverträglichkeiten.',()=>chips('allergy',OPT.allergy)],
+ exclude:['Was magst du nicht?','Diese Zutaten lassen wir weg. Mit Komma trennen.',excl],
+ device:['Welche Geräte hast du?','Rezepte nutzen nur diese Geräte.',()=>chips('device',OPT.device)],
+ level:['Wie viel Aufwand ist okay?','',()=>single('level',OPT.level)+'<h2>Maximale Kochzeit</h2>'+single('time',OPT.time,' Min.')]
+};
+const order=['persons','days','diet','allergy','exclude','device','level'];
+function onboarding(){
+ const k=order[step],[t,s,f]=sections[k];
+ $('nav').hidden=true;
+ $('main').innerHTML=`<div class="dots">${order.map((_,i)=>`<i class="${i<=step?'on':''}"></i>`).join('')}</div>
+ <h1>${step==0?'Willkommen bei Tellerlust':t}</h1>${step==0?`<h2 style="margin-top:0">${t}</h2>`:''}<p class="s">${s}</p>${f()}
+ <button class="btn" onclick="next()">${step==order.length-1?'Fertig':'Weiter'}</button>
+ ${step>0?'<button class="btn g" onclick="step--;draw()">Zurück</button>':''}`;
+}
+function next(){if(step<order.length-1){step++}else{S.done=true;save();tab='plan'}draw();$('main').scrollTop=0}
+function shell(){
+ $('nav').hidden=false;
+ const T=[['plan','📋','Plan'],['gerichte','🍽️','Gerichte'],['einst','⚙️','Einstellungen']];
+ $('nav').innerHTML=T.map(([k,i,l])=>`<button class="${tab==k?'on':''}" onclick="go('${k}')"><span>${i}</span>${l}</button>`).join('');
+ let h='';
+ if(tab=='plan')h=`<h1>Dein Wochenplan</h1><p class="s">${S.persons} Personen · ${S.days.length} Kochtage</p><div class="card empty">Hier erscheint dein Plan, sobald die Rezepte da sind. Das ist der nächste Schritt.</div>`;
+ if(tab=='gerichte')h=open?detail(open):library();
+ if(tab=='einst'){h=`<h1>Einstellungen</h1>`+order.map(k=>`<h2>${sections[k][0]}</h2>${sections[k][2]()}`).join('')+`<button class="btn g" onclick="if(confirm('Alle Einstellungen zurücksetzen?')){localStorage.removeItem('tl');S={...DEF};step=0;draw()}">Zurücksetzen</button>`}
+ $('main').innerHTML=h;
+}
+const RANK={Einfach:0,Mittel:1,Anspruchsvoll:2};
+const norm=s=>s.toLowerCase().trim();
+function fits(r){
+ const d=S.diet.filter(x=>x!='Alles');
+ if(!d.every(x=>r.di.includes(x)))return false;
+ if(r.al.some(a=>S.allergy.includes(a)))return false;
+ if(!r.dv.every(x=>S.device.includes(x)))return false;
+ if(r.tm>S.time||RANK[r.lv]>RANK[S.level])return false;
+ const ex=S.exclude.split(',').map(norm).filter(Boolean);
+ if(ex.some(w=>r.i.some(i=>norm(i[0]).includes(w))))return false;
+ return true;
+}
+function go(k){tab=k;open=null;draw();$('main').scrollTop=0}
+function openR(id){open=id;rtab='z';draw();$('main').scrollTop=0}
+function back(){open=null;draw()}
+const bg=c=>`background:linear-gradient(135deg,${c},${c}99)`;
+function list(){
+ let rs=RECIPES.filter(fits);
+ if(onlyFav)rs=rs.filter(r=>S.fav.includes(r.id));
+ if(q)rs=rs.filter(r=>norm(r.t+' '+r.cu+' '+r.i.map(i=>i[0]).join(' ')).includes(norm(q)));
+ if(!rs.length)return `<div class="card empty">Keine Rezepte gefunden. Passe die Suche oder deine Einstellungen an.</div>`;
+ return rs.map(r=>`<button class="rc" onclick="openR('${r.id}')"><span class="th" style="${bg(r.c)}">${r.e}</span><span><b>${r.t}</b><small>${r.tm} Min. · ${r.n[0]} kcal · ${r.cu}</small></span></button>`).join('');
+}
+function library(){
+ const n=RECIPES.filter(fits).length;
+ return `<h1>Gerichte</h1><p class="s">${n} von ${RECIPES.length} Rezepten passen zu deinen Einstellungen.</p>
+ <input class="chip" style="width:100%;text-align:left;font-weight:400" type="search" placeholder="Suchen: Gericht, Küche oder Zutat" value="${q.replace(/"/g,'&quot;')}" oninput="q=this.value;$('list').innerHTML=list()">
+ <div class="grid" style="margin-bottom:14px"><button class="chip ${!onlyFav?'on':''}" onclick="onlyFav=false;draw()">Alle</button><button class="chip ${onlyFav?'on':''}" onclick="onlyFav=true;draw()">♥ Favoriten</button></div>
+ <div id="list">${list()}</div>`;
+}
+const FR={0.25:'¼',0.5:'½',0.75:'¾'};
+function amt(a,u){
+ let v=a*S.persons/4;
+ if(u=='g'||u=='ml')return (v>=20?Math.round(v/5)*5:Math.round(v))+' '+u;
+ if(u=='l')return (Math.round(v*100)/100).toString().replace('.',',')+' l';
+ v=Math.round(v*4)/4; if(v<0.25)v=0.25;
+ const w=Math.floor(v),f=FR[Math.round((v-w)*100)/100]||'';
+ return (w?w:'')+f+' '+u;
+}
+function detail(id){
+ const r=RECIPES.find(x=>x.id==id),fav=S.fav.includes(id);
+ const body=rtab=='z'
+  ?`<div class="card">${r.i.map(i=>`<div class="ing"><span>${i[0]}</span><span>${amt(i[1],i[2])}</span></div>`).join('')}</div><p class="s">Menge für ${S.persons} ${S.persons==1?'Person':'Personen'}. Salz, Pfeffer und Wasser hast du zu Hause.</p>`
+  :`<div class="card">${r.s.map((t,k)=>`<div class="step"><i>${k+1}</i><span>${t}</span></div>`).join('')}</div>`;
+ return `<div class="hero" style="${bg(r.c)}"><button style="left:12px" aria-label="Zurück" onclick="back()">←</button><button style="right:12px;color:${fav?'var(--acc)':'var(--ink)'}" aria-label="Favorit" onclick="tog('fav','${id}')">${fav?'♥':'♡'}</button>${r.e}</div>
+ <h1>${r.t}</h1><p class="s">${r.d}</p>
+ <div class="card macros"><div><b>${r.n[0]}</b><small>kcal</small></div><div><b>${r.n[1]} g</b><small>Eiweiß</small></div><div><b>${r.n[2]} g</b><small>Kohlenhydr.</small></div><div><b>${r.n[3]} g</b><small>Fett</small></div></div>
+ <p class="s" style="text-align:center">Pro Portion, ungefähre Schätzwerte · ${r.tm} Min. · ${r.lv}</p>
+ <div class="seg"><button class="${rtab=='z'?'on':''}" onclick="rtab='z';draw()">Zutaten</button><button class="${rtab=='s'?'on':''}" onclick="rtab='s';draw()">Zubereitung</button></div>${body}`;
+}
+function draw(){const y=$('main').scrollTop;S.done?shell():onboarding();if(S.done)$('main').scrollTop=y}
+draw();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
