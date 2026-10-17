@@ -49,6 +49,16 @@ nav button.on{color:var(--acc)}
 .ing{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.ing:last-child{border:0}.ing span:last-child{color:var(--mute);white-space:nowrap}
 .step{display:flex;gap:12px;padding:10px 0}.step i{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accsoft);color:var(--acc);font-style:normal;font-weight:700;display:grid;place-items:center;font-size:14px}
 input.chip{margin-bottom:10px}
+.dc{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:20px;padding:10px 10px 10px 12px;margin-bottom:10px}
+.dc .dd{flex:none;width:50px;text-align:center;line-height:1.2}.dd b{display:block;font-size:16px}.dd small{color:var(--mute);font-size:13px}
+.dc .info{flex:1;min-width:0;display:flex;gap:10px;align-items:center;border:0;background:none;text-align:left;color:var(--ink);font-family:inherit;padding:0}
+.dc .th{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:28px;flex:none}
+.dc .info b{display:block;font-size:16px;line-height:1.25}.dc small{color:var(--mute);font-size:13px}
+.ib{flex:none;width:44px;height:44px;border-radius:50%;border:0;background:var(--bg);color:var(--ink);font-size:20px}
+.dc.free{opacity:.85;background:transparent;border:1.5px dashed var(--line)}
+.dc.free .ib{width:auto;padding:0 14px;border-radius:22px;font-size:14px;font-weight:600;margin-left:auto;color:var(--acc);background:var(--accsoft)}
+select.chip{width:100%;text-align:left;font-weight:400;appearance:none;-webkit-appearance:none;margin-bottom:10px}
+.btn.sm{padding:12px;font-size:16px;margin-top:0;background:var(--accsoft);color:var(--acc)}
 button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
 </style>
 </head>
@@ -64,7 +74,7 @@ const OPT={
  time:[20,30,45,60]
 };
 const DAYS=['M','D','M','D','F','S','S'];
-const DEF={done:false,fav:[],persons:4,days:[0,2,4],meal:'Abend',diet:['Alles'],allergy:[],exclude:'',device:['Herd','Ofen'],level:'Mittel',time:45};
+const DEF={done:false,fav:[],plan:null,crit:{cu:'',tm:0,ing:''},pv:'kal',persons:4,days:[0,2,4],meal:'Abend',diet:['Alles'],allergy:[],exclude:'',device:['Herd','Ofen'],level:'Mittel',time:45};
 let S;try{S={...DEF,...JSON.parse(localStorage.getItem('tl')||'{}')}}catch(e){S={...DEF}}
 const save=()=>{try{localStorage.setItem('tl',JSON.stringify(S))}catch(e){}};
 let tab='plan',step=0,open=null,rtab='z',q='',onlyFav=false;
@@ -99,10 +109,47 @@ function shell(){
  const T=[['plan','📋','Plan'],['gerichte','🍽️','Gerichte'],['einst','⚙️','Einstellungen']];
  $('nav').innerHTML=T.map(([k,i,l])=>`<button class="${tab==k?'on':''}" onclick="go('${k}')"><span>${i}</span>${l}</button>`).join('');
  let h='';
- if(tab=='plan')h=`<h1>Dein Wochenplan</h1><p class="s">${S.persons} Personen · ${S.days.length} Kochtage</p><div class="card empty">Hier erscheint dein Plan, sobald die Rezepte da sind. Das ist der nächste Schritt.</div>`;
- if(tab=='gerichte')h=open?detail(open):library();
+ if(tab=='plan')h=planView();
+ if(tab=='gerichte')h=library();
+ if(open)h=detail(open);
  if(tab=='einst'){h=`<h1>Einstellungen</h1>`+order.map(k=>`<h2>${sections[k][0]}</h2>${sections[k][2]()}`).join('')+`<button class="btn g" onclick="if(confirm('Alle Einstellungen zurücksetzen?')){localStorage.removeItem('tl');S={...DEF};step=0;draw()}">Zurücksetzen</button>`}
  $('main').innerHTML=h;
+}
+const WD=['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+const WK=['Mo','Di','Mi','Do','Fr','Sa','So'];
+function monday(){const d=new Date();d.setHours(12,0,0,0);d.setDate(d.getDate()-((d.getDay()+6)%7));return d}
+const wkKey=()=>{const d=monday();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
+const dayDate=i=>{const d=monday();d.setDate(d.getDate()+i);return d.getDate()+'.'+(d.getMonth()+1)+'.'};
+function curPlan(){if(!S.plan||S.plan.wk!=wkKey())S.plan={wk:wkKey(),m:{}};return S.plan.m}
+const byId=id=>RECIPES.find(r=>r.id==id);
+function pool(excl){const c=S.crit;return RECIPES.filter(fits).filter(r=>!excl.includes(r.id)&&(!c.cu||r.cu==c.cu)&&(!c.tm||r.tm<=c.tm)&&(!c.ing||r.i.some(i=>norm(i[0]).includes(norm(c.ing)))))}
+function pickOne(excl,usedCu){const p=pool(excl);if(!p.length)return null;const fresh=p.filter(r=>!usedCu.includes(r.cu));const a=fresh.length?fresh:p;return a[Math.floor(Math.random()*a.length)].id}
+const NONE='Kein passendes Rezept gefunden. Lockere die Kriterien oder deine Einstellungen.';
+function makePlan(){const m={},ids=[];[...S.days].sort().forEach(d=>{const id=pickOne(ids,ids.map(i=>byId(i).cu));if(id){m[d]=id;ids.push(id)}});S.plan={wk:wkKey(),m};save();draw();if(Object.keys(m).length<S.days.length)alert('Es gab nicht für alle Kochtage genug passende Rezepte. '+NONE)}
+function swap(d){const m=curPlan(),id=pickOne(Object.values(m),[]);if(!id){alert(NONE);return}m[d]=id;save();draw()}
+function addDay(d){const m=curPlan(),id=pickOne(Object.values(m),[]);if(!id){alert(NONE);return}m[d]=id;save();draw()}
+function dropDay(d){delete curPlan()[d];save();draw()}
+function setCrit(k,v){S.crit[k]=k=='tm'?+v:v;save();if(k!='ing')draw()}
+function dayCard(d,full){
+ const m=curPlan(),id=m[d];
+ if(!id)return `<div class="dc free"><div class="dd"><b>${WK[d]}</b><small>${dayDate(d)}</small></div><span style="color:var(--mute)">Frei</span><button class="ib" onclick="addDay(${d})">+ Kochen</button></div>`;
+ const r=byId(id);
+ return `<div class="dc"><div class="dd"><b>${WK[d]}</b><small>${dayDate(d)}</small></div><button class="info" onclick="openR('${id}')"><span class="th" style="${bg(r.c)}">${r.e}</span><span><b>${r.t}</b><small>${r.tm} Min. · ${r.n[0]} kcal</small></span></button><button class="ib" aria-label="Anderes Gericht" onclick="swap(${d})">↻</button><button class="ib" aria-label="Streichen" onclick="dropDay(${d})">✕</button></div>`;
+}
+function planView(){
+ const m=curPlan(),ds=Object.keys(m).map(Number).sort(),has=ds.length>0;
+ const cus=[...new Set(RECIPES.filter(fits).map(r=>r.cu))].sort();
+ const c=S.crit,kc=has?Math.round(ds.reduce((a,d)=>a+byId(m[d]).n[0],0)/ds.length):0;
+ let h=`<h1>Dein Wochenplan</h1><p class="s">Woche ab ${dayDate(0)} · ${S.persons} ${S.persons==1?'Person':'Personen'}</p>`;
+ if(!has)h+=`<div class="card" style="text-align:center"><p class="s" style="margin-bottom:0">Noch kein Plan für diese Woche. Ich schlage dir Gerichte für deine ${S.days.length} Kochtage vor.</p><button class="btn" onclick="makePlan()">Plan erstellen</button></div>`;
+ else h+=`<div class="seg"><button class="${S.pv=='kal'?'on':''}" onclick="S.pv='kal';save();draw()">Kalender</button><button class="${S.pv=='liste'?'on':''}" onclick="S.pv='liste';save();draw()">Liste</button></div>`
+  +(S.pv=='kal'?[0,1,2,3,4,5,6].map(d=>dayCard(d)).join(''):ds.map(d=>dayCard(d)).join(''))
+  +`<p class="s" style="text-align:center">Ø ${kc} kcal pro Portion und Kochtag</p><button class="btn sm" onclick="if(confirm('Den ganzen Plan neu vorschlagen?'))makePlan()">Ganzen Plan neu vorschlagen</button>`;
+ h+=`<h2>Kriterien für Vorschläge</h2><p class="s">Gelten für „Plan erstellen“ und das Tauschen mit ↻.</p>
+ <select class="chip" onchange="setCrit('cu',this.value)"><option value="">Alle Küchen</option>${cus.map(x=>`<option ${c.cu==x?'selected':''}>${x}</option>`).join('')}</select>
+ <select class="chip" onchange="setCrit('tm',this.value)">${[[0,'Beliebige Kochzeit'],[20,'Bis 20 Minuten'],[30,'Bis 30 Minuten'],[45,'Bis 45 Minuten']].map(([v,l])=>`<option value="${v}" ${c.tm==v?'selected':''}>${l}</option>`).join('')}</select>
+ <input class="chip" style="width:100%;text-align:left;font-weight:400" placeholder="Mit Zutat, z. B. Lachs" value="${c.ing.replace(/"/g,'&quot;')}" onchange="setCrit('ing',this.value);draw()">`;
+ return h;
 }
 const RANK={Einfach:0,Mittel:1,Anspruchsvoll:2};
 const norm=s=>s.toLowerCase().trim();
